@@ -1,5 +1,6 @@
 import bz2
 import json
+import logging
 import os
 import time
 import uuid
@@ -30,7 +31,10 @@ class CacheJSONEncoder(json.JSONEncoder):
 
 
 class USTDownloadCache:
-    def __init__(self):
+    def __init__(self, logger):
+        self.logger = logger
+        self.logger.info("initializing USTDownloadCache")
+
         self.cache_dir = self._get_cache_dir()
         self.cache_metadata_file = os.path.join(self.cache_dir, "file_cache.json")
         self._try_create_cache_dir()
@@ -41,6 +45,7 @@ class USTDownloadCache:
         if self.cache_metadata_file is None:
             return
 
+        self.logger.debug("Saving cache metadata to %s" % self.cache_metadata_file)
         with open(self.cache_metadata_file, "w") as cmf:
             json.dump(self.file_cache, cmf, cls=CacheJSONEncoder, indent=4)
 
@@ -48,25 +53,35 @@ class USTDownloadCache:
         cache_dir = ".ust_cache"
 
         if "SNAP_USER_COMMON" in os.environ:
+            self.logger.debug("Detected that the environment is a snap.")
             cache_dir = os.path.join(os.environ["SNAP_USER_COMMON"], cache_dir)
         else:
             cache_dir = os.path.join(str(Path.home()), cache_dir)
+
+        self.logger.debug("Cached files will be saved to %s" % cache_dir)
 
         return cache_dir
 
     def _try_create_cache_dir(self):
         if os.path.exists(self.cache_dir):
+            self.logger.debug("The cache dir (%s) exists" % self.cache_dir)
             if not os.path.isdir(self.cache_dir):
                 raise Exception("%s exists, but is not a directory." % self.cache_dir)
 
             return
 
+        self.logger.debug(
+            "The cache dir (%s) does not exist, creating now" % self.cache_dir
+        )
         os.mkdir(self.cache_dir)
 
     def _load_file_cache(self):
         self.file_cache = {}
 
         if os.path.exists(self.cache_metadata_file):
+            self.logger.debug(
+                "Loading cache metadata file from %s" % self.cache_metadata_file
+            )
             with open(self.cache_metadata_file) as cmf:
                 cache_contents = json.load(cmf)
                 for url, cached_file in cache_contents.items():
@@ -79,25 +94,30 @@ class USTDownloadCache:
 
     def get_cached_file_path(self, url):
         if url in self.file_cache.keys():
-            print("File is cached")
+            self.logger.debug("File for url %s is cached" % url)
             cached_file = self.file_cache[url]
             if not cached_file.is_expired:
-                print("cached file not expired")
-                return cached_file.path
+                self.logger.debug("The cache file for %s has not expired" % url)
             else:
-                print("cache is expired")
+                self.logger.debug("The cached file for %s has expired" % url)
                 self._remove_expired_file(cached_file)
 
-        file_id = str(uuid.uuid4())
-        downloaded_file_path = os.path.join(self.cache_dir, file_id)
-        USTDownloadCache._download(url, downloaded_file_path)
-        metadata = USTDownloadCache._get_file_metadata(downloaded_file_path)
+                file_id = str(uuid.uuid4())
+                downloaded_file_path = os.path.join(self.cache_dir, file_id)
+                self._download(url, downloaded_file_path)
+                metadata = USTDownloadCache._get_file_metadata(downloaded_file_path)
 
-        self.file_cache[url] = CachedFile(
-            url, downloaded_file_path, metadata["timestamp"], metadata["ttl"]
-        )
+                self.file_cache[url] = CachedFile(
+                    url, downloaded_file_path, metadata["timestamp"], metadata["ttl"]
+                )
+
+            return self.file_cache[url].path
 
     def _remove_expired_file(self, cached_file):
+        self.logger.debug(
+            "Removing expired cached file %s downloaded from %s"
+            % (cached_file.path, cached_file.url)
+        )
         os.remove(cached_file.path)
         del self.file_cache[cached_file.url]
 
@@ -120,10 +140,9 @@ class USTDownloadCache:
             magic_number = f.read(2)
             return magic_number == b"BZ"
 
-    @staticmethod
-    def _download(download_url, filename):
+    def _download(self, download_url, filename):
         try:
-            print("Downloading %s to %s" % (download_url, filename))
+            self.logger.debug("Downloading %s to %s" % (download_url, filename))
             with open(filename, "wb") as target_file:
                 curl = pycurl.Curl()
                 curl.setopt(pycurl.URL, download_url)
@@ -135,6 +154,10 @@ class USTDownloadCache:
             raise Exception("Downloading %s failed: %s" % (download_url, ex))
 
 
-udc = USTDownloadCache()
+logger = logging.getLogger("ust_download_cache_test")
+logger.setLevel(logging.DEBUG)
+sh = logging.StreamHandler()
+logger.addHandler(sh)
+udc = USTDownloadCache(logger)
 print(udc.get_cached_file_path("file:///home/msalvatore/compost/test.json.bz2"))
 udc.save_cache()
