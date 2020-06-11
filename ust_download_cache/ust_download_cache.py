@@ -1,6 +1,5 @@
 import bz2
 import json
-import logging
 import os
 import time
 import uuid
@@ -56,7 +55,7 @@ class USTDownloadCache:
             self.logger.debug("Detected that the environment is a snap.")
             cache_dir = os.path.join(os.environ["SNAP_USER_COMMON"], cache_dir)
         else:
-            cache_dir = os.path.join(str(Path.home()), cache_dir)
+            cache_dir = os.path.join(os.environ["HOME"], cache_dir)
 
         self.logger.debug("Cached files will be saved to %s" % cache_dir)
 
@@ -66,14 +65,16 @@ class USTDownloadCache:
         if os.path.exists(self.cache_dir):
             self.logger.debug("The cache dir (%s) exists" % self.cache_dir)
             if not os.path.isdir(self.cache_dir):
-                raise Exception("%s exists, but is not a directory." % self.cache_dir)
+                raise FileExistsError(
+                    "%s exists, but is not a directory." % self.cache_dir
+                )
 
             return
 
         self.logger.debug(
             "The cache dir (%s) does not exist, creating now" % self.cache_dir
         )
-        os.mkdir(self.cache_dir)
+        Path(self.cache_dir).mkdir(parents=True)
 
     def _load_file_cache(self):
         self.file_cache = {}
@@ -132,7 +133,13 @@ class USTDownloadCache:
         if USTDownloadCache._is_bz2(downloaded_file_path):
             self._extract_bz2_file(downloaded_file_path)
 
-        metadata = self._get_file_metadata(downloaded_file_path)
+        try:
+            metadata = self._get_file_metadata(downloaded_file_path)
+        except Exception as ex:
+            if os.path.exists(downloaded_file_path):
+                os.remove(downloaded_file_path)
+
+            raise ex
 
         self.file_cache[url] = CachedFile(
             url, downloaded_file_path, metadata["timestamp"], metadata["ttl"]
@@ -183,12 +190,3 @@ class USTDownloadCache:
         with open(path, "rb") as f:
             magic_number = f.read(2)
             return magic_number == b"BZ"
-
-
-logger = logging.getLogger("ust_download_cache_test")
-logger.setLevel(logging.DEBUG)
-sh = logging.StreamHandler()
-logger.addHandler(sh)
-udc = USTDownloadCache(logger)
-data = udc.get_from_url("file:///home/msalvatore/compost/uct.json.bz2")
-print(data["data"]["CVE-2019-18810"])
