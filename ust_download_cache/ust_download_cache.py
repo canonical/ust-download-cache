@@ -94,7 +94,7 @@ class USTDownloadCache:
 
     def get_from_url(self, url):
         path = self._get_cached_file_path(url)
-        file_contents = USTDownloadCache._read_cached_file(path)
+        file_contents = self._read_cached_file(path)
         json_data = json.loads(file_contents)
 
         return json_data
@@ -108,22 +108,13 @@ class USTDownloadCache:
             else:
                 self.logger.debug("The cached file for %s has expired" % url)
                 self._remove_expired_file(cached_file)
-                self._cache_file(url)
+                self._download_and_cache_file(url)
+                self.save_cache()
         else:
             self._download_and_cache_file(url)
+            self.save_cache()
 
         return self.file_cache[url].path
-
-    def _download_and_cache_file(self, url):
-        file_id = str(uuid.uuid4())
-        downloaded_file_path = os.path.join(self.cache_dir, file_id)
-        self._download(url, downloaded_file_path)
-        metadata = USTDownloadCache._get_file_metadata(downloaded_file_path)
-
-        self.file_cache[url] = CachedFile(
-            url, downloaded_file_path, metadata["timestamp"], metadata["ttl"]
-        )
-        self.save_cache()
 
     def _remove_expired_file(self, cached_file):
         self.logger.debug(
@@ -133,36 +124,19 @@ class USTDownloadCache:
         os.remove(cached_file.path)
         del self.file_cache[cached_file.url]
 
-    @staticmethod
-    def _get_file_metadata(path):
-        file_contents = USTDownloadCache._read_cached_file(path)
+    def _download_and_cache_file(self, url):
+        file_id = str(uuid.uuid4())
+        downloaded_file_path = os.path.join(self.cache_dir, file_id)
+        self._download(url, downloaded_file_path)
 
-        json_data = json.loads(file_contents)
+        if USTDownloadCache._is_bz2(downloaded_file_path):
+            self._extract_bz2_file(downloaded_file_path)
 
-        if "metadata" not in json_data:
-            raise Exception("Error parsing metadata from file.")
+        metadata = self._get_file_metadata(downloaded_file_path)
 
-        return json_data["metadata"]
-
-    @staticmethod
-    def _read_cached_file(path):
-        if USTDownloadCache._is_bz2(path):
-            try:
-                with bz2.open(path, "rb") as f:
-                    file_contents = f.read()
-            except Exception as ex:
-                raise Exception("Failed to decompress bz2 archive: %s" % ex)
-        else:
-            with open(path) as f:
-                file_contents = f.read()
-
-        return file_contents
-
-    @staticmethod
-    def _is_bz2(path):
-        with open(path, "rb") as f:
-            magic_number = f.read(2)
-            return magic_number == b"BZ"
+        self.file_cache[url] = CachedFile(
+            url, downloaded_file_path, metadata["timestamp"], metadata["ttl"]
+        )
 
     def _download(self, download_url, filename):
         try:
@@ -176,6 +150,40 @@ class USTDownloadCache:
         except Exception as ex:
             raise Exception("Downloading %s failed: %s" % (download_url, ex))
 
+    def _extract_bz2_file(self, path):
+        try:
+            self.logger.debug("Reading bz2 file %s" % path)
+            with bz2.open(path, "rb") as f:
+                file_contents = f.read()
+
+            self.logger.debug("Writing extracted bz2 file contents to %s" % path)
+            with open(path, "wb") as f:
+                f.write(file_contents)
+        except Exception as ex:
+            raise Exception("Error extracting bz2 archive: %s" % ex)
+
+    def _get_file_metadata(self, path):
+        file_contents = self._read_cached_file(path)
+
+        json_data = json.loads(file_contents)
+
+        if "metadata" not in json_data:
+            raise Exception("Error parsing metadata from file.")
+
+        return json_data["metadata"]
+
+    def _read_cached_file(self, path):
+        with open(path) as f:
+            file_contents = f.read()
+
+        return file_contents
+
+    @staticmethod
+    def _is_bz2(path):
+        with open(path, "rb") as f:
+            magic_number = f.read(2)
+            return magic_number == b"BZ"
+
 
 logger = logging.getLogger("ust_download_cache_test")
 logger.setLevel(logging.DEBUG)
@@ -183,4 +191,4 @@ sh = logging.StreamHandler()
 logger.addHandler(sh)
 udc = USTDownloadCache(logger)
 data = udc.get_from_url("file:///home/msalvatore/compost/uct.json.bz2")
-udc.save_cache()
+print(data["data"]["CVE-2019-18810"])
