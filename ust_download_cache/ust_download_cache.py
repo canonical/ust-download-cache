@@ -31,11 +31,11 @@ class CacheJSONEncoder(json.JSONEncoder):
 
 
 class USTDownloadCache:
-    def __init__(self, logger):
+    def __init__(self, logger, cache_dir=None):
         self.logger = logger
         self.logger.info("initializing USTDownloadCache")
 
-        self.cache_dir = self._get_cache_dir()
+        self.cache_dir = cache_dir if cache_dir else self._get_cache_dir()
         self.cache_metadata_file = os.path.join(self.cache_dir, "file_cache.json")
         self._try_create_cache_dir()
 
