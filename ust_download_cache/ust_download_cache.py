@@ -71,12 +71,7 @@ class USTDownloadCache:
             with open(self.cache_metadata_file) as cmf:
                 cache_contents = json.load(cmf)
                 for url, cached_file in cache_contents.items():
-                    self.file_cache[url] = CachedFile(
-                        url,
-                        cached_file["path"],
-                        cached_file["timestamp"],
-                        cached_file["ttl"],
-                    )
+                    self.file_cache[url] = CachedFile.from_dict(cached_file)
 
     def get_from_url(self, url):
         path = self._get_cached_file_path(url)
