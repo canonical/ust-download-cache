@@ -1,3 +1,4 @@
+import bz2
 import json
 import logging
 import os
@@ -5,9 +6,10 @@ import shutil
 import time
 import uuid
 
+import pycurl
 import pytest
 
-from ust_download_cache import USTDownloadCache
+from ust_download_cache import BZ2ExtractionError, DownloadError, USTDownloadCache
 
 
 def load_file_cache(tmp_dir):
@@ -250,3 +252,27 @@ def test_download_missing_metadata(null_logger, tmpdir, monkeypatch, uuid4):
         udc.get_from_url(url)
 
     assert not os.path.exists(tmpdir.join("99"))
+
+
+def raise_test_exception():
+    raise Exception("Test")
+
+
+def test_download_error(null_logger, tmpdir, monkeypatch, uuid4):
+    monkeypatch.setattr(uuid, "uuid4", uuid4.get)
+    monkeypatch.setattr(pycurl, "Curl", raise_test_exception)
+    url = "file://%s" % os.path.abspath("./tests/assets/1.json")
+
+    with pytest.raises(DownloadError):
+        udc = USTDownloadCache(null_logger, tmpdir)
+        udc.get_from_url(url)
+
+
+def test_bz2_error(null_logger, tmpdir, monkeypatch, uuid4):
+    monkeypatch.setattr(uuid, "uuid4", uuid4.get)
+    monkeypatch.setattr(bz2, "open", raise_test_exception)
+    url = "file://%s" % os.path.abspath("./tests/assets/2.json.bz2")
+
+    with pytest.raises(BZ2ExtractionError):
+        udc = USTDownloadCache(null_logger, tmpdir)
+        udc.get_from_url(url)

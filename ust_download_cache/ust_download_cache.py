@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pycurl
 
+from ust_download_cache import BZ2ExtractionError, DownloadError
+
 
 class CachedFile:
     def __init__(self, url, path, timestamp, ttl):
@@ -155,11 +157,12 @@ class USTDownloadCache:
                 curl.perform()
                 curl.close()
         except Exception as ex:
-            raise Exception("Downloading %s failed: %s" % (download_url, ex))
+            raise DownloadError("Downloading %s failed: %s" % (download_url, ex))
 
     def _extract_bz2_file(self, path):
         try:
             self.logger.debug("Reading bz2 file %s" % path)
+            print("Reading bz2 file %s" % path)
             with bz2.open(path, "rb") as f:
                 file_contents = f.read()
 
@@ -167,7 +170,7 @@ class USTDownloadCache:
             with open(path, "wb") as f:
                 f.write(file_contents)
         except Exception as ex:
-            raise Exception("Error extracting bz2 archive: %s" % ex)
+            raise BZ2ExtractionError("Error extracting bz2 archive: %s" % ex)
 
     def _get_file_metadata(self, path):
         file_contents = self._read_cached_file(path)
