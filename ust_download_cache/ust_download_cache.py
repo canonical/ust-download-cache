@@ -43,9 +43,6 @@ class USTDownloadCache:
         self._load_file_cache()
 
     def save_cache(self):
-        if self.cache_metadata_file is None:
-            return
-
         self.logger.debug("Saving cache metadata to %s" % self.cache_metadata_file)
         with open(self.cache_metadata_file, "w") as cmf:
             json.dump(self.file_cache, cmf, cls=CacheJSONEncoder, indent=4)
