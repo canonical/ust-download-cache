@@ -1,6 +1,10 @@
+class BZ2ExtractionError(Exception):
+    pass
+
+
 class DownloadError(Exception):
     pass
 
 
-class BZ2ExtractionError(Exception):
+class FileCacheLoadError(Exception):
     pass

@@ -12,6 +12,7 @@ from ust_download_cache import (
     BZ2ExtractionError,
     CachedFile,
     DownloadError,
+    FileCacheLoadError,
     USTDownloadCache,
 )
 
@@ -282,3 +283,41 @@ def test_bz2_error(null_logger, tmpdir, monkeypatch, uuid4):
     with pytest.raises(BZ2ExtractionError):
         udc = USTDownloadCache(null_logger, tmpdir)
         udc.get_from_url(url)
+
+
+def test_download_cache_load_failed_key_error(null_logger, tmpdir, monkeypatch, uuid4):
+    write_test_file_cache(tmpdir)
+    shutil.copy(
+        "./tests/assets/malformed_file_cache.json", tmpdir.join("file_cache.json")
+    )
+
+    with pytest.raises(FileCacheLoadError) as fcle:
+        USTDownloadCache(null_logger, tmpdir)
+
+    assert "missing key 'url'" in str(fcle.value)
+
+
+def test_download_cache_load_failed_json_error(null_logger, tmpdir, monkeypatch, uuid4):
+    write_test_file_cache(tmpdir)
+    shutil.copy(
+        "./tests/assets/malformed_json_file_cache.json", tmpdir.join("file_cache.json")
+    )
+
+    with pytest.raises(FileCacheLoadError) as fcle:
+        USTDownloadCache(null_logger, tmpdir)
+
+    assert "File contains malformed JSON" in str(fcle.value)
+
+
+def test_download_cache_load_permission_denied_error(
+    null_logger, tmpdir, monkeypatch, uuid4
+):
+    write_test_file_cache(tmpdir)
+    cache_file = tmpdir.join("file_cache.json")
+    shutil.copy("./tests/assets/malformed_json_file_cache.json", cache_file)
+    os.chmod(cache_file, 0o000)
+
+    with pytest.raises(FileCacheLoadError) as fcle:
+        USTDownloadCache(null_logger, tmpdir)
+
+    assert "Permission denied" in str(fcle.value)

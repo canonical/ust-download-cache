@@ -6,7 +6,12 @@ from pathlib import Path
 
 import pycurl
 
-from ust_download_cache import BZ2ExtractionError, CachedFile, DownloadError
+from ust_download_cache import (
+    BZ2ExtractionError,
+    CachedFile,
+    DownloadError,
+    FileCacheLoadError,
+)
 
 
 class CacheJSONEncoder(json.JSONEncoder):
@@ -68,10 +73,30 @@ class USTDownloadCache:
             self.logger.debug(
                 "Loading cache metadata file from %s" % self.cache_metadata_file
             )
-            with open(self.cache_metadata_file) as cmf:
-                cache_contents = json.load(cmf)
-                for url, cached_file in cache_contents.items():
-                    self.file_cache[url] = CachedFile.from_dict(cached_file)
+            try:
+                with open(self.cache_metadata_file) as cmf:
+                    cache_contents = json.load(cmf)
+                    for url, cached_file in cache_contents.items():
+                        self.file_cache[url] = CachedFile.from_dict(cached_file)
+            except KeyError as ke:
+                error_msg = (
+                    "Error loading the file cache from %s" % self.cache_metadata_file
+                )
+                raise FileCacheLoadError(
+                    "%s: record for %s is missing key %s" % (error_msg, url, ke)
+                )
+            except json.decoder.JSONDecodeError as jde:
+                error_msg = (
+                    "Error loading the file cache from %s" % self.cache_metadata_file
+                )
+                raise FileCacheLoadError(
+                    "%s: File contains malformed JSON: %s" % (error_msg, jde)
+                )
+            except Exception as ex:
+                error_msg = (
+                    "Error loading the file cache from %s" % self.cache_metadata_file
+                )
+                raise FileCacheLoadError("%s: %s" % (error_msg, ex))
 
     def get_from_url(self, url):
         path = self._get_cached_file_path(url)
