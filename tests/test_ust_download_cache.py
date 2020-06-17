@@ -3,13 +3,17 @@ import json
 import logging
 import os
 import shutil
-import time
 import uuid
 
 import pycurl
 import pytest
 
-from ust_download_cache import BZ2ExtractionError, DownloadError, USTDownloadCache
+from ust_download_cache import (
+    BZ2ExtractionError,
+    CachedFile,
+    DownloadError,
+    USTDownloadCache,
+)
 
 
 def load_file_cache(tmp_dir):
@@ -136,11 +140,12 @@ def test_download_creates_file_cache_contents_2(
 
 def test_download_cache_expired(null_logger, tmpdir, monkeypatch, uuid4):
     monkeypatch.setattr(uuid, "uuid4", uuid4.get)
-    monkeypatch.setattr(time, "time", lambda: 1591906202.0)
+    monkeypatch.setattr(CachedFile, "is_expired", True)
     url = "file://%s" % os.path.abspath("./tests/assets/1.json")
 
     udc = USTDownloadCache(null_logger, tmpdir)
     udc.get_from_url(url)
+    # Downloading a second time will cause the mock uuid to increment
     udc.get_from_url(url)
     with open(tmpdir.join("file_cache.json")) as f:
         cache_contents = json.load(f)
@@ -158,11 +163,12 @@ def test_download_cache_expired(null_logger, tmpdir, monkeypatch, uuid4):
 
 def test_download_cache_not_expired(null_logger, tmpdir, monkeypatch, uuid4):
     monkeypatch.setattr(uuid, "uuid4", uuid4.get)
-    monkeypatch.setattr(time, "time", lambda: 1591401650.0)
+    monkeypatch.setattr(CachedFile, "is_expired", False)
     url = "file://%s" % os.path.abspath("./tests/assets/1.json")
 
     udc = USTDownloadCache(null_logger, tmpdir)
     udc.get_from_url(url)
+    # Downloading a second time will NOT cause the mock uuid to increment
     udc.get_from_url(url)
     with open(tmpdir.join("file_cache.json")) as f:
         cache_contents = json.load(f)
@@ -197,7 +203,7 @@ def write_test_file_cache(tmpdir):
 
 def test_download_cache_load_not_expired(null_logger, tmpdir, monkeypatch, uuid4):
     monkeypatch.setattr(uuid, "uuid4", uuid4.get)
-    monkeypatch.setattr(time, "time", lambda: 1591401650.0)
+    monkeypatch.setattr(CachedFile, "is_expired", False)
     url = "file://%s" % os.path.abspath("./tests/assets/1.json")
 
     write_test_file_cache(tmpdir)
@@ -221,7 +227,7 @@ def test_download_cache_load_not_expired(null_logger, tmpdir, monkeypatch, uuid4
 
 def test_download_cache_load_expired(null_logger, tmpdir, monkeypatch, uuid4):
     monkeypatch.setattr(uuid, "uuid4", uuid4.get)
-    monkeypatch.setattr(time, "time", lambda: 1591409650.0)
+    monkeypatch.setattr(CachedFile, "is_expired", True)
     url = "file://%s" % os.path.abspath("./tests/assets/1.json")
 
     write_test_file_cache(tmpdir)
