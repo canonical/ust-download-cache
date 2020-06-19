@@ -25,7 +25,7 @@ class CacheJSONEncoder(json.JSONEncoder):
 class USTDownloadCache:
     def __init__(self, logger, cache_dir=None):
         self.logger = logger
-        self.logger.info("initializing USTDownloadCache")
+        self.logger.debug("Initializing USTDownloadCache")
 
         self.cache_dir = cache_dir if cache_dir else self._get_cache_dir()
         self.cache_metadata_file = os.path.join(self.cache_dir, "file_cache.json")
@@ -165,7 +165,6 @@ class USTDownloadCache:
     def _extract_bz2_file(self, path):
         try:
             self.logger.debug("Reading bz2 file %s" % path)
-            print("Reading bz2 file %s" % path)
             with bz2.open(path, "rb") as f:
                 file_contents = f.read()
 
