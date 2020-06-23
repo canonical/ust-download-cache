@@ -9,7 +9,7 @@ os.umask(0o022)
 
 setuptools.setup(
     name="UST Download Cache",
-    version="1.0.0-beta1",
+    version="1.0.0",
     author="Mike Salvatore <mike.salvatore@canonical.com>",
     description="A package for caching downloads of specially formatted files.",
     long_description=long_description,
