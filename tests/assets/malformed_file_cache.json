@@ -1,0 +1,14 @@
+{
+    "file:///home/user/compost/uct1.json.bz2": {
+        "1url": "file:///home/user/compost/uct1.json.bz2",
+        "path": "/home/user/.ust_cache/1c2692c1-2ec6-4fe3-a233-732b8ce1b750",
+        "timestamp": 1591880020,
+        "ttl": 3600
+    },
+    "file:///home/user/compost/uct.json.bz2": {
+        "url": "file:///home/user/compost/uct.json.bz2",
+        "path": "/home/user/.ust_cache/72fd98e5-25c0-4f2b-b041-c93e7c4e7793",
+        "timestamp": 1591886020,
+        "ttl": 3600
+    }
+}
