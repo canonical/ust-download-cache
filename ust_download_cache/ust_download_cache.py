@@ -129,6 +129,7 @@ class USTDownloadCache:
         )
         os.remove(cached_file.path)
         del self.file_cache[cached_file.url]
+        self.save_cache()
 
     def _download_and_cache_file(self, url):
         file_id = str(uuid.uuid4())

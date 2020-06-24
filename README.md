@@ -75,7 +75,7 @@ tarball in your setup.py:
 
 ```python
 install_requires = [
-        "ust-download-cache @ https://github.com/canonical/ust-download-cache/archive/v1.0.0.tar.gz",
+        "ust-download-cache @ https://github.com/canonical/ust-download-cache/archive/v1.0.1.tar.gz",
 ]
 ```
 
