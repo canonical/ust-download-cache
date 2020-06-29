@@ -22,7 +22,7 @@ setuptools.setup(
         "Operating System :: POSIX :: Linux",
         "Topic :: Security",
     ],
-    install_requires=["pycurl"],
+    install_requires=["requests"],
     python_requires=">=3.5",
     setup_requires=["pytest-runner"],
     tests_require=["pytest", "pytest-cov"],
