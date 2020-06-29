@@ -9,7 +9,7 @@ os.umask(0o022)
 
 setuptools.setup(
     name="UST Download Cache",
-    version="1.0.1",
+    version="1.1.0",
     author="Mike Salvatore <mike.salvatore@canonical.com>",
     description="A package for caching downloads of specially formatted files.",
     long_description=long_description,
@@ -22,7 +22,7 @@ setuptools.setup(
         "Operating System :: POSIX :: Linux",
         "Topic :: Security",
     ],
-    install_requires=["pycurl"],
+    install_requires=["requests"],
     python_requires=">=3.5",
     setup_requires=["pytest-runner"],
     tests_require=["pytest", "pytest-cov"],

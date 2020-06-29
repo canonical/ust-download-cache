@@ -55,17 +55,12 @@ now`
 ## Installation
 
 ### From Source
-To install from source, you'll first need to install some prerequsites:
-
-```
-$> sudo apt install python3-pip libcurl4-openssl-dev libssl-dev
-```
-
-Then, you can clone this repository and install USTDownloadCache:
+To install from source, you can clone this repository and install
+USTDownloadCache:
 
 ```
 $> git clone https://github.com/canonical/ust-download-cache
-$> pip3 install --user ust-download-cache/
+$> pip3 install --user ./ust-download-cache/
 ```
 
 ### As a dependency

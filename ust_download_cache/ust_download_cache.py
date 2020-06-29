@@ -4,7 +4,7 @@ import os
 import uuid
 from pathlib import Path
 
-import pycurl
+import requests
 
 from ust_download_cache import (
     BZ2ExtractionError,
@@ -155,11 +155,9 @@ class USTDownloadCache:
         try:
             self.logger.debug("Downloading %s to %s" % (download_url, filename))
             with open(filename, "wb") as target_file:
-                curl = pycurl.Curl()
-                curl.setopt(pycurl.URL, download_url)
-                curl.setopt(pycurl.WRITEDATA, target_file)
-                curl.perform()
-                curl.close()
+                r = requests.get(download_url)
+                r.raise_for_status()
+                target_file.write(r.content)
         except Exception as ex:
             raise DownloadError("Downloading %s failed: %s" % (download_url, ex))
 
@@ -186,7 +184,7 @@ class USTDownloadCache:
         return json_data["metadata"]
 
     def _read_cached_file(self, path):
-        with open(path) as f:
+        with open(path, "rb") as f:
             file_contents = f.read()
 
         return file_contents
