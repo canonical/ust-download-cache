@@ -102,7 +102,7 @@ def test_download_creates_file_cache(null_logger, tmpdir, monkeypatch, uuid4):
     monkeypatch.setattr(requests, "get", lambda *args, **kwargs: mr)
 
     udc = USTDownloadCache(null_logger, tmpdir)
-    udc.get_from_url(url)
+    udc.get_data_from_url(url)
     assert os.path.exists(tmpdir.join("file_cache.json"))
 
 
@@ -114,7 +114,7 @@ def test_download_creates_file_cache_contents(null_logger, tmpdir, monkeypatch, 
     monkeypatch.setattr(requests, "get", lambda *args, **kwargs: mr)
 
     udc = USTDownloadCache(null_logger, tmpdir)
-    udc.get_from_url(url)
+    udc.get_data_from_url(url)
     with open(tmpdir.join("file_cache.json")) as f:
         cache_contents = json.load(f)
 
@@ -140,11 +140,11 @@ def test_download_creates_file_cache_contents_2(
 
     mr = MockResponse("", 200, url=url1)
     monkeypatch.setattr(requests, "get", lambda *args, **kwargs: mr)
-    udc.get_from_url(url1)
+    udc.get_data_from_url(url1)
 
     mr = MockResponse("", 200, url=url2)
     monkeypatch.setattr(requests, "get", lambda *args, **kwargs: mr)
-    udc.get_from_url(url2)
+    udc.get_data_from_url(url2)
     with open(tmpdir.join("file_cache.json")) as f:
         cache_contents = json.load(f)
 
@@ -174,9 +174,9 @@ def test_download_cache_expired(null_logger, tmpdir, monkeypatch, uuid4):
 
     mr = MockResponse("", 200, url=url)
     monkeypatch.setattr(requests, "get", lambda *args, **kwargs: mr)
-    udc.get_from_url(url)
+    udc.get_data_from_url(url)
     # Downloading a second time will cause the mock uuid to increment
-    udc.get_from_url(url)
+    udc.get_data_from_url(url)
     with open(tmpdir.join("file_cache.json")) as f:
         cache_contents = json.load(f)
 
@@ -203,9 +203,9 @@ def test_download_cache_not_expired(null_logger, tmpdir, monkeypatch, uuid4):
 
     mr = MockResponse("", 200, url=url)
     monkeypatch.setattr(requests, "get", lambda *args, **kwargs: mr)
-    udc.get_from_url(url)
+    udc.get_data_from_url(url)
     # Downloading a second time will NOT cause the mock uuid to increment
-    udc.get_from_url(url)
+    udc.get_data_from_url(url)
     with open(tmpdir.join("file_cache.json")) as f:
         cache_contents = json.load(f)
 
@@ -249,7 +249,7 @@ def test_download_cache_load_not_expired(null_logger, tmpdir, monkeypatch, uuid4
 
     mr = MockResponse("", 200, url=url)
     monkeypatch.setattr(requests, "get", lambda *args, **kwargs: mr)
-    udc.get_from_url(url)
+    udc.get_data_from_url(url)
     with open(tmpdir.join("file_cache.json")) as f:
         cache_contents = json.load(f)
 
@@ -276,7 +276,7 @@ def test_download_cache_load_expired(null_logger, tmpdir, monkeypatch, uuid4):
 
     mr = MockResponse("", 200, url=url)
     monkeypatch.setattr(requests, "get", lambda *args, **kwargs: mr)
-    udc.get_from_url(url)
+    udc.get_data_from_url(url)
     with open(tmpdir.join("file_cache.json")) as f:
         cache_contents = json.load(f)
 
@@ -300,7 +300,7 @@ def test_download_missing_metadata(null_logger, tmpdir, monkeypatch, uuid4):
 
         mr = MockResponse("", 200, url=url)
         monkeypatch.setattr(requests, "get", lambda *args, **kwargs: mr)
-        udc.get_from_url(url)
+        udc.get_data_from_url(url)
 
     assert not os.path.exists(tmpdir.join("99"))
 
@@ -320,7 +320,7 @@ def test_download_error(null_logger, tmpdir, monkeypatch, uuid4):
         monkeypatch.setattr(
             requests, "get", lambda *args, **kwargs: raise_test_exception
         )
-        udc.get_from_url(url)
+        udc.get_data_from_url(url)
 
 
 def test_download_404(null_logger, tmpdir, monkeypatch, uuid4):
@@ -333,7 +333,7 @@ def test_download_404(null_logger, tmpdir, monkeypatch, uuid4):
 
     with pytest.raises(DownloadError) as de:
         udc = USTDownloadCache(null_logger, tmpdir)
-        udc.get_from_url(url)
+        udc.get_data_from_url(url)
 
     assert "404" in str(de.value)
 
@@ -348,7 +348,7 @@ def test_bz2_error(null_logger, tmpdir, monkeypatch, uuid4):
 
         mr = MockResponse("", 200, url=url)
         monkeypatch.setattr(requests, "get", lambda *args, **kwargs: mr)
-        udc.get_from_url(url)
+        udc.get_data_from_url(url)
 
 
 def test_download_cache_load_failed_key_error(null_logger, tmpdir, monkeypatch, uuid4):
@@ -387,3 +387,31 @@ def test_download_cache_load_permission_denied_error(
         USTDownloadCache(null_logger, tmpdir)
 
     assert "Permission denied" in str(fcle.value)
+
+
+def test_download_get_data(null_logger, tmpdir, monkeypatch, uuid4):
+    monkeypatch.setattr(uuid, "uuid4", uuid4.get)
+    url = "file://%s" % os.path.abspath("./tests/assets/1.json")
+
+    mr = MockResponse("", 200, url=url)
+    monkeypatch.setattr(requests, "get", lambda *args, **kwargs: mr)
+
+    udc = USTDownloadCache(null_logger, tmpdir)
+    data = udc.get_data_from_url(url)
+    assert data["a"] == 1
+    assert data["b"] == 2
+    assert data["c"] == 3
+
+
+def test_download_get_cache_metadata(null_logger, tmpdir, monkeypatch, uuid4):
+    monkeypatch.setattr(uuid, "uuid4", uuid4.get)
+    url = "file://%s" % os.path.abspath("./tests/assets/1.json")
+
+    mr = MockResponse("", 200, url=url)
+    monkeypatch.setattr(requests, "get", lambda *args, **kwargs: mr)
+
+    udc = USTDownloadCache(null_logger, tmpdir)
+    metadata = udc.get_cache_metadata_from_url(url)
+    assert metadata["version"] == "1.0"
+    assert metadata["timestamp"] == 1591401600
+    assert metadata["ttl"] == 60

@@ -98,7 +98,13 @@ class USTDownloadCache:
                 )
                 raise FileCacheLoadError("%s: %s" % (error_msg, ex))
 
-    def get_from_url(self, url):
+    def get_data_from_url(self, url):
+        return self._get_from_url(url)["data"]
+
+    def get_cache_metadata_from_url(self, url):
+        return self._get_from_url(url)["metadata"]
+
+    def _get_from_url(self, url):
         path = self._get_cached_file_path(url)
         file_contents = self._read_cached_file(path)
         json_data = json.loads(file_contents)

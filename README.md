@@ -24,10 +24,8 @@ logger = logging.getLogger("")
 download_cache = USTDownloadCache(logger)
 
 url = "URL_GOES_HERE"
-contents = download_cache.get_from_url(url)
-
-metadata = contents["metadata"] # used by USTDownloadCache
-data = contents["data"]
+data = download_cache.get_data_from_url(url)
+metadata = download_cache.get_cache_metadata_from_url(url) # used by USTDownloadCache
 ```
 
 ### Metadata
