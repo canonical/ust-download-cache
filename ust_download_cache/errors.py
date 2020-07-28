@@ -8,3 +8,7 @@ class DownloadError(Exception):
 
 class FileCacheLoadError(Exception):
     pass
+
+
+class GZExtractionError(Exception):
+    pass

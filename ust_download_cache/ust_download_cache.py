@@ -1,4 +1,5 @@
 import bz2
+import gzip
 import json
 import os
 import uuid
@@ -11,6 +12,7 @@ from ust_download_cache import (
     CachedFile,
     DownloadError,
     FileCacheLoadError,
+    GZExtractionError,
 )
 
 
@@ -144,6 +146,8 @@ class USTDownloadCache:
 
         if USTDownloadCache._is_bz2(downloaded_file_path):
             self._extract_bz2_file(downloaded_file_path)
+        elif USTDownloadCache._is_gz(downloaded_file_path):
+            self._extract_gz_file(downloaded_file_path)
 
         try:
             metadata = self._get_file_metadata(downloaded_file_path)
@@ -179,6 +183,18 @@ class USTDownloadCache:
         except Exception as ex:
             raise BZ2ExtractionError("Error extracting bz2 archive: %s" % ex)
 
+    def _extract_gz_file(self, path):
+        try:
+            self.logger.debug("Reading gz file %s" % path)
+            with gzip.open(path, "rb") as f:
+                file_contents = f.read()
+
+            self.logger.debug("Writing extracted gz file contents to %s" % path)
+            with open(path, "wb") as f:
+                f.write(file_contents)
+        except Exception as ex:
+            raise GZExtractionError("Error extracting gz archive: %s" % ex)
+
     def _get_file_metadata(self, path):
         file_contents = self._read_cached_file(path)
 
@@ -195,8 +211,16 @@ class USTDownloadCache:
 
         return file_contents
 
+    @classmethod
+    def _is_bz2(cls, file_path):
+        return cls._magic_number_matches(file_path, b"BZ")
+
+    @classmethod
+    def _is_gz(cls, file_path):
+        return cls._magic_number_matches(file_path, bytearray.fromhex("1f8b"))
+
     @staticmethod
-    def _is_bz2(path):
-        with open(path, "rb") as f:
-            magic_number = f.read(2)
-            return magic_number == b"BZ"
+    def _magic_number_matches(file_path, expected_magic_number):
+        with open(file_path, "rb") as f:
+            file_magic_number = f.read(2)
+            return file_magic_number == expected_magic_number

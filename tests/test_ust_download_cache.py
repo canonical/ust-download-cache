@@ -1,4 +1,5 @@
 import bz2
+import gzip
 import json
 import logging
 import os
@@ -13,6 +14,7 @@ from ust_download_cache import (
     CachedFile,
     DownloadError,
     FileCacheLoadError,
+    GZExtractionError,
     USTDownloadCache,
 )
 
@@ -349,6 +351,33 @@ def test_bz2_error(null_logger, tmpdir, monkeypatch, uuid4):
         mr = MockResponse("", 200, url=url)
         monkeypatch.setattr(requests, "get", lambda *args, **kwargs: mr)
         udc.get_data_from_url(url)
+
+
+def test_gzip_error(null_logger, tmpdir, monkeypatch, uuid4):
+    monkeypatch.setattr(uuid, "uuid4", uuid4.get)
+    monkeypatch.setattr(gzip, "open", raise_test_exception)
+    url = "file://%s" % os.path.abspath("./tests/assets/4.json.gz")
+
+    with pytest.raises(GZExtractionError):
+        udc = USTDownloadCache(null_logger, tmpdir)
+
+        mr = MockResponse("", 200, url=url)
+        monkeypatch.setattr(requests, "get", lambda *args, **kwargs: mr)
+        udc.get_data_from_url(url)
+
+
+def test_download_gzip(null_logger, tmpdir, monkeypatch, uuid4):
+    url = "file://%s" % os.path.abspath("./tests/assets/4.json.gz")
+
+    udc = USTDownloadCache(null_logger, tmpdir)
+
+    mr = MockResponse("", 200, url=url)
+    monkeypatch.setattr(requests, "get", lambda *args, **kwargs: mr)
+    data = udc.get_data_from_url(url)
+
+    assert data["a"] == "I"
+    assert data["b"] == "II"
+    assert data["c"] == "III"
 
 
 def test_download_cache_load_failed_key_error(null_logger, tmpdir, monkeypatch, uuid4):

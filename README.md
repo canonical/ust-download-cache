@@ -28,6 +28,12 @@ data = download_cache.get_data_from_url(url)
 metadata = download_cache.get_cache_metadata_from_url(url) # used by USTDownloadCache
 ```
 
+### Extracting zipped files
+
+USTDownloadCache has the ability to download, extract, and cache either bz2 or
+gz archives. These files are extracted and stored uncompressed so that the data
+can be accessed as quickly as possible.
+
 ### Metadata
 
 The USTDownloadCache relies on metadata contained within the file it is
